@@ -198,6 +198,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10)):
 
     if len(intersections) == 1:
         orbit = next(iter(intersections.keys()))  # Get the orbit from the only element in the dictionary
+        print(orbit)
     elif len(intersections) > 1:
         orbit = sorted(intersections, key=intersections.get, reverse=True)[0]  # Sort and get the orbit with highest intersection
     else:
@@ -205,77 +206,79 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10)):
         orbit = None
         print("No intersections found in the dictionary. orbit is None")
 
-    date_groups = date_groups[orbit]
-    bbox_groups = bbox_groups[orbit]
-    intersections = intersections[orbit]
-    
-    groups = subsample(date_groups, n = n)
+    if orbit is not None:
+        
+        date_groups = date_groups[orbit]
+        bbox_groups = bbox_groups[orbit]
+        intersections = intersections[orbit]
+        
+        groups = subsample(date_groups, n = n)
 
-    merged_mask = None
-    merged_bands = None
-    files = []
-    for group_idx, group in enumerate(groups):
+        merged_mask = None
+        merged_bands = None
+        files = []
+        for group_idx, group in enumerate(groups):
 
-        partial_outputs = []
-        cache_files = []
-        for timestamp_idx, timestamp in enumerate(group):
+            partial_outputs = []
+            cache_files = []
+            for timestamp_idx, timestamp in enumerate(group):
+                
+                partial_output = './image_{group_idx}_{timestamp_idx}.tiff'.format(group_idx=group_idx, timestamp_idx=timestamp_idx)
+                
+                tiffs = shretry(max_retry, get_image, bbox = bbox, time_interval = (timestamp - datetime.timedelta(hours=1), timestamp + datetime.timedelta(hours=1)), resolution = RESOLUTION, split_shape=split_shape)
+                cache_files.extend(tiffs)
+                
+                if(len(tiffs)>1):
+                    gdal_merge(tiffs, list(bbox), output=partial_output)
+                else:
+                    shutil.copyfile(tiffs[0], partial_output)
+
+                partial_outputs.append(partial_output)
+
+            group_output = './image_{group_idx}.tiff'.format(group_idx=group_idx)
+            gdal_merge(partial_outputs, list(bbox), output=group_output, dstnodata=NO_DATA)
             
-            partial_output = './image_{group_idx}_{timestamp_idx}.tiff'.format(group_idx=group_idx, timestamp_idx=timestamp_idx)
+            with rasterio.open(group_output, 'r') as file:
+                bands = file.read()
+                mask  = bands[-1,  :, :]
+                bands = bands[:-1, :, :]
+                profile = file.profile
+
+            profile.update(count = bands.shape[0])
+            with rasterio.open(group_output, 'w', **profile) as file:
+                bands = np.array(bands).transpose((1,2,0))
+                bands[mask==0] = NO_DATA
+                bands = np.array(bands).transpose((2,0,1))
+                file.nodata = NO_DATA
+                file.write(bands)
+
+            bands[bands==NO_DATA] = np.nan
             
-            tiffs = shretry(max_retry, get_image, bbox = bbox, time_interval = (timestamp - datetime.timedelta(hours=1), timestamp + datetime.timedelta(hours=1)), resolution = RESOLUTION, split_shape=split_shape)
-            cache_files.extend(tiffs)
-            
-            if(len(tiffs)>1):
-                gdal_merge(tiffs, list(bbox), output=partial_output)
+            mask = np.ones_like(bands)
+            mask[np.isnan(bands)] = 0
+            bands[np.isnan(bands)] = 0
+
+            if(merged_mask is None):
+                merged_mask = mask
+                merged_bands = bands
             else:
-                shutil.copyfile(tiffs[0], partial_output)
+                merged_mask = merged_mask + mask
+                merged_bands = merged_bands + bands
+            
+            files.append(group_output)
+            
+            for tiff in partial_outputs:
+                os.remove(tiff)
+            #for tiff in cache_files:
+            #    os.remove(tiff)
+            #if(len(files)<len(groups)):
+            #    os.remove(group_output)
 
-            partial_outputs.append(partial_output)
-
-        group_output = './image_{group_idx}.tiff'.format(group_idx=group_idx)
-        gdal_merge(partial_outputs, list(bbox), output=group_output, dstnodata=NO_DATA)
+        merged_mask[merged_mask==0] = np.nan
+        merged_bands = merged_bands/merged_mask
+        merged_bands[np.isnan(merged_bands)] = NO_DATA
         
-        with rasterio.open(group_output, 'r') as file:
-            bands = file.read()
-            mask  = bands[-1,  :, :]
-            bands = bands[:-1, :, :]
-            profile = file.profile
-
-        profile.update(count = bands.shape[0])
-        with rasterio.open(group_output, 'w', **profile) as file:
-            bands = np.array(bands).transpose((1,2,0))
-            bands[mask==0] = NO_DATA
-            bands = np.array(bands).transpose((2,0,1))
-            file.nodata = NO_DATA
-            file.write(bands)
-
-        bands[bands==NO_DATA] = np.nan
-        
-        mask = np.ones_like(bands)
-        mask[np.isnan(bands)] = 0
-        bands[np.isnan(bands)] = 0
-
-        if(merged_mask is None):
-            merged_mask = mask
-            merged_bands = bands
-        else:
-            merged_mask = merged_mask + mask
-            merged_bands = merged_bands + bands
-        
-        files.append(group_output)
-        
-        for tiff in partial_outputs:
-            os.remove(tiff)
-        #for tiff in cache_files:
-        #    os.remove(tiff)
-        #if(len(files)<len(groups)):
-        #    os.remove(group_output)
-
-    merged_mask[merged_mask==0] = np.nan
-    merged_bands = merged_bands/merged_mask
-    merged_bands[np.isnan(merged_bands)] = NO_DATA
-    
-    shutil.copyfile(files[-1], output)
-    with rasterio.open(output, 'r+') as file:
-        file.write(merged_bands)
-    os.remove(files[-1])
+        shutil.copyfile(files[-1], output)
+        with rasterio.open(output, 'r+') as file:
+            file.write(merged_bands)
+        os.remove(files[-1])
