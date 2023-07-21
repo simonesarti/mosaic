@@ -52,19 +52,20 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
-    if args.image in ["esalulc", "copernicusdem"]:
+    if args['image'] in ["esalulc", "copernicusdem"]:
         args.pop("n")    # not temporal
 
-    if args.image == "sentinel1":
+    if args['image'] == "sentinel1":
         from mosaic.sentinel1 import mosaic
-    if args.image == "sentinel2":
+    if args['image'] == "sentinel2":
         from mosaic.sentinel2 import mosaic
-    if args.image == "dwlulc":
+    if args['image'] == "dwlulc":
         from mosaic.dwlulc import mosaic
-    if args.image == "esalulc":
+    if args['image'] == "esalulc":
         from mosaic.esalulc import mosaic
-    if args.image == "copernicusdem":
+    if args['image'] == "copernicusdem":
         from mosaic.copernicusdem import mosaic
 
+    args.pop("image")
     mosaic(**args)
     shutil.rmtree("./test_dir")
