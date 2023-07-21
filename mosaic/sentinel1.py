@@ -19,6 +19,7 @@ import sentinelhub
 from mosaic.utils import shretry, gdal_merge
 import shapely
 import rasterio
+import time
 
 NO_DATA = -9999
 RESOLUTION = 10
@@ -137,7 +138,8 @@ def get_image(
         bbox, 
         time_interval, 
         resolution,
-        split_shape = (10,10)
+        split_shape = (10,10),
+        rate_limit=1
     ):
 
     sh_requests = None
@@ -149,8 +151,15 @@ def get_image(
         bbox_list = bbox_splitter.get_bbox_list()
         sh_requests = [_get_image(bbox, time_interval, resolution) for bbox in bbox_list]
 
-    dl_requests = [request.download_list[0] for request in sh_requests]
-    _ = SentinelHubDownloadClient(config=None).download(dl_requests, max_threads=5)
+    #dl_requests = [request.download_list[0] for request in sh_requests]
+    #_ = SentinelHubDownloadClient(config=None).download(dl_requests, max_threads=5)
+
+    for request in sh_requests:
+        dl_request = request.download_list[0]
+        _ = SentinelHubDownloadClient(config=None).download([dl_request], max_threads=1)
+        time.sleep(rate_limit)  # Pause for the specified time delay
+    
+    
     tiffs = [Path(sh_requests[0].data_folder) / req.get_filename_list()[0] for req in sh_requests]
     str_tiffs = [str(tiff) for tiff in tiffs]
     return(str_tiffs)
@@ -165,7 +174,7 @@ def subsample(groups, n):
     return(ss_groups)
 
 
-def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10)):
+def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10), rate_limit=1):
 
 
     time_interval =  [start, end]
@@ -198,7 +207,6 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10)):
 
     if len(intersections) == 1:
         orbit = next(iter(intersections.keys()))  # Get the orbit from the only element in the dictionary
-        print(orbit)
     elif len(intersections) > 1:
         orbit = sorted(intersections, key=intersections.get, reverse=True)[0]  # Sort and get the orbit with highest intersection
     else:
@@ -225,7 +233,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10)):
                 
                 partial_output = './image_{group_idx}_{timestamp_idx}.tiff'.format(group_idx=group_idx, timestamp_idx=timestamp_idx)
                 
-                tiffs = shretry(max_retry, get_image, bbox = bbox, time_interval = (timestamp - datetime.timedelta(hours=1), timestamp + datetime.timedelta(hours=1)), resolution = RESOLUTION, split_shape=split_shape)
+                tiffs = shretry(max_retry, get_image, bbox = bbox, time_interval = (timestamp - datetime.timedelta(hours=1), timestamp + datetime.timedelta(hours=1)), resolution = RESOLUTION, split_shape=split_shape, rate_limit=rate_limit)
                 cache_files.extend(tiffs)
                 
                 if(len(tiffs)>1):

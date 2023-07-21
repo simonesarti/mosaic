@@ -24,6 +24,8 @@ def parse_arguments():
     parser.add_argument("--max_retry", type=int, default=10, help="maximimun number of requests for the same images")
     parser.add_argument("--output", type=str, default="./mosaic.tiff", help="output path")
     parser.add_argument("--n", type=int, default=3, help="number of periods to use, when time is relevant")
+    parser.add_argument("--rate_limit", type=int, default=300, help="max requests per minute")
+
     
     args = parser.parse_args()
     
@@ -34,6 +36,9 @@ def parse_arguments():
     args.start = datetime.datetime(int(args.start[0]), int(args.start[1]), int(args.start[2]))
     args.end   =  args.end.split("/")
     args.end   = datetime.datetime(int(args.end[0]), int(args.end[1]), int(args.end[2]))
+
+    args.rate_limit = args.rate_limit*0.95
+    args.rate_limit = 60/args.rate_limit
 
 
     del args.minlong

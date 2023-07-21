@@ -12,13 +12,14 @@ import numpy as np
 import datetime
 from mosaic.utils import shretry, gdal_merge
 import os
+import time
 
 NO_DATA = 240
 RESOLUTION = 10
 CRS = sentinelhub.CRS.WGS84
 
 
-def download(bbox, time_interval, output, split_shape = (10, 10)):
+def download(bbox, time_interval, output, split_shape = (10, 10), rate_limit=1):
 
     def get_image(bbox, resolution):
         size = bbox_to_dimensions(bbox, resolution=resolution)
@@ -46,8 +47,14 @@ def download(bbox, time_interval, output, split_shape = (10, 10)):
 
     bbox_list = bbox_splitter.get_bbox_list()
     sh_requests = [get_image(bbox, RESOLUTION) for bbox in bbox_list]
-    dl_requests = [request.download_list[0] for request in sh_requests]
-    _ = SentinelHubDownloadClient(config=None).download(dl_requests, max_threads=5)
+    
+    #dl_requests = [request.download_list[0] for request in sh_requests]
+    #_ = SentinelHubDownloadClient(config=None).download(dl_requests, max_threads=5)
+
+    for request in sh_requests:
+        dl_request = request.download_list[0]
+        _ = SentinelHubDownloadClient(config=None).download([dl_request], max_threads=1)
+        time.sleep(rate_limit)  # Pause for the specified time delay
 
     data_folder = sh_requests[0].data_folder
     tiffs = [Path(data_folder) / req.get_filename_list()[0] for req in sh_requests]
@@ -57,9 +64,9 @@ def download(bbox, time_interval, output, split_shape = (10, 10)):
     for str_tiff in str_tiffs:
         os.remove(str_tiff)
     
-def mosaic(bbox, start, end, output, max_retry=10, split_shape=(10, 10)):
+def mosaic(bbox, start, end, output, max_retry=10, split_shape=(10, 10), rate_limit=1):
 
-    shretry(max_retry, download, bbox = bbox, time_interval=(start, end), output = output, split_shape = split_shape)
+    shretry(max_retry, download, bbox = bbox, time_interval=(start, end), output = output, split_shape = split_shape, rate_limit=1)
 
     with rasterio.open(output, 'r') as file:
         bands = file.read()
