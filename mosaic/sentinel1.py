@@ -196,7 +196,14 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10)):
             intersection_groups.append(intersection)
         intersections[orbit] = np.mean(intersection_groups)
 
-    orbit = sorted(intersections, key=intersections.get, reverse=True)[0]
+    if len(intersections) == 1:
+        orbit = next(iter(intersections.keys()))  # Get the orbit from the only element in the dictionary
+    elif len(intersections) > 1:
+        orbit = sorted(intersections, key=intersections.get, reverse=True)[0]  # Sort and get the orbit with highest intersection
+    else:
+        # Handle the case where intersections dictionary is empty
+        orbit = None
+        print("No intersections found in the dictionary. orbit is None")
 
     date_groups = date_groups[orbit]
     bbox_groups = bbox_groups[orbit]
