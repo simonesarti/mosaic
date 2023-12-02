@@ -27,9 +27,9 @@ def shretry(max_retry, fun, **args):
         try:
             return(fun(**args))
         except Exception as e:
-            print(f"attempt {attempt} failed" )
+            print(f"attempt {attempt} failed: {e}" )
     
-    raise Exception('Execution unsuccessful')
+    raise Exception(f'Execution unsuccessful')
 
 
 """
