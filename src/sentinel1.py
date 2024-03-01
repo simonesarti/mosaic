@@ -5,7 +5,7 @@ https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-1
 
 from sentinelhub.geometry import Geometry
 from sentinelhub.time_utils import parse_time
-from mosaic import evalscripts
+from src import evalscripts
 from pathlib import Path
 from sentinelhub import SentinelHubCatalog
 from sentinelhub import CRS, BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, SentinelHubDownloadClient, MosaickingOrder
@@ -16,7 +16,7 @@ import os
 import shutil
 import numpy as np
 import sentinelhub
-from mosaic.utils import shretry, gdal_merge
+from src.utils import sh_retry, gdal_merge
 import shapely
 import rasterio
 import time
@@ -233,7 +233,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10,10), rat
                 
                 partial_output = './image_{group_idx}_{timestamp_idx}.tiff'.format(group_idx=group_idx, timestamp_idx=timestamp_idx)
                 
-                tiffs = shretry(max_retry, get_image, bbox = bbox, time_interval = (timestamp - datetime.timedelta(hours=1), timestamp + datetime.timedelta(hours=1)), resolution = RESOLUTION, split_shape=split_shape, rate_limit=rate_limit)
+                tiffs = sh_retry(max_retry, get_image, bbox = bbox, time_interval = (timestamp - datetime.timedelta(hours=1), timestamp + datetime.timedelta(hours=1)), resolution = RESOLUTION, split_shape=split_shape, rate_limit=rate_limit)
                 cache_files.extend(tiffs)
                 
                 if(len(tiffs)>1):

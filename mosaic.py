@@ -2,12 +2,13 @@
 from argparse import ArgumentParser
 import datetime
 import shutil
+from src.utils.sh_credentials import set_SH_credentials
 
-import mosaic.sentinel1
-import mosaic.sentinel2
-import mosaic.esalulc
-import mosaic.dwlulc
-import mosaic.copernicusdem
+import src.sentinel1
+import src.sentinel2
+import src.esalulc
+import src.dwlulc
+import src.copernicusdem
 
 def parse_arguments():
 
@@ -26,7 +27,6 @@ def parse_arguments():
     parser.add_argument("--n", type=int, default=3, help="number of periods to use, when time is relevant")
     parser.add_argument("--rate_limit", type=int, default=300, help="max requests per minute")
 
-    
     args = parser.parse_args()
     
     args.bbox = (args.minlong, args.minlat, args.maxlong, args.maxlat)
@@ -34,12 +34,11 @@ def parse_arguments():
 
     args.start = args.start.split("/")
     args.start = datetime.datetime(int(args.start[0]), int(args.start[1]), int(args.start[2]))
-    args.end   =  args.end.split("/")
-    args.end   = datetime.datetime(int(args.end[0]), int(args.end[1]), int(args.end[2]))
+    args.end =  args.end.split("/")
+    args.end = datetime.datetime(int(args.end[0]), int(args.end[1]), int(args.end[2]))
 
     args.rate_limit = args.rate_limit*0.95
     args.rate_limit = 60/args.rate_limit
-
 
     del args.minlong
     del args.minlat
@@ -49,11 +48,12 @@ def parse_arguments():
     del args.split_columns
     
     args = vars(args)
-    
     return(args)
 
 
-if __name__ == "__main__":
+def main(args):
+    
+    set_SH_credentials()
 
     args = parse_arguments()
 
@@ -61,16 +61,22 @@ if __name__ == "__main__":
         args.pop("n")    # not temporal
 
     if args['image'] == "sentinel1":
-        from mosaic.sentinel1 import mosaic
+        from src.sentinel1 import mosaic
     if args['image'] == "sentinel2":
-        from mosaic.sentinel2 import mosaic
+        from src.sentinel2 import mosaic
     if args['image'] == "dwlulc":
-        from mosaic.dwlulc import mosaic
+        from src.dwlulc import mosaic
     if args['image'] == "esalulc":
-        from mosaic.esalulc import mosaic
+        from src.esalulc import mosaic
     if args['image'] == "copernicusdem":
-        from mosaic.copernicusdem import mosaic
+        from src.copernicusdem import mosaic
 
     args.pop("image")
     mosaic(**args)
     shutil.rmtree("./test_dir")
+
+
+
+if __name__ == "__main__":
+    main()
+

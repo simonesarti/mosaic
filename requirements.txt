@@ -1,0 +1,8 @@
+git+https://github.com/DeepCube-org/dynamicworld.git#egg=dynamicworldWrap
+fiona
+numpy
+pytest
+python-dotenv
+rasterio
+s2cloudless
+sentinelhub

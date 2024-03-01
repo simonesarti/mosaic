@@ -4,16 +4,16 @@ https://sentinel.esa.int/web/sentinel/missions/sentinel-2
 """
 
 
-from sentinelhub import SHConfig, CRS, BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, BBoxSplitter, SentinelHubDownloadClient, MosaickingOrder
+from sentinelhub import CRS, BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, BBoxSplitter, SentinelHubDownloadClient, MosaickingOrder
 import sentinelhub
 from pathlib import Path
-from mosaic import evalscripts
-from mosaic import clouddetection
+from src import evalscripts
+from s2cloudless import S2PixelCloudDetector
 import rasterio
 import numpy as np
 import shutil
 import os
-from mosaic.utils import shretry, gdal_merge, split_interval
+from src.utils import sh_retry, gdal_merge, split_interval
 import time
 
 NO_DATA = -9999
@@ -69,7 +69,7 @@ def download(bbox, time_interval, output, split_shape=(10, 10), rate_limit=1):
 def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10), mask_clouds = True, rate_limit=1):
 
     slots = split_interval(start, end, n)
-    model = clouddetection.Inference(all_bands=True)
+    cloud_detector = S2PixelCloudDetector(threshold=None, average_over=0, dilation_size=0, all_bands=True)
     
     merged_mask = None
     merged_bands = None
@@ -79,7 +79,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10), ma
         print(slot)
         image = './image_{start}_{end}.tiff'.format(start = slot[0], end = slot[1])
         
-        shretry(max_retry, download, bbox = bbox, time_interval = slot, output = image, split_shape=split_shape, rate_limit=rate_limit)
+        sh_retry(max_retry, download, bbox = bbox, time_interval = slot, output = image, split_shape=split_shape, rate_limit=rate_limit)
 
         with rasterio.open(image, 'r') as file:
             bands = file.read()
@@ -94,7 +94,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10), ma
                 tmp = bands.copy()
                 tmp[tmp==NO_DATA] = 0
                 tmp = tmp.astype(np.float32)/10000.0
-                cloud_prob = model.predict(tmp[np.newaxis, ...])[0, :, :]
+                cloud_prob = cloud_detector.get_cloud_probability_maps(tmp[np.newaxis, ...])[0, :, :]
                 bands[cloud_prob > 0.4] = NO_DATA
 
             bands[mask==0] = NO_DATA

@@ -3,17 +3,16 @@ Extraction of the Dynamic World.
 https://dynamicworld.app/
 """
 
-import tensorflow as tf
 import numpy as np
-from mosaic.sentinel2 import download
-from mosaic.utils import shretry
-from mosaic.clouddetection import Inference as CloudDetection
+from src.sentinel2 import download
+from src.utils import sh_retry
+from s2cloudless import S2PixelCloudDetector
 from dynamicworld.inference import Inference as LULCDetection
 import os
 import shutil
 import rasterio
 
-from mosaic.utils import split_interval
+from src.utils import split_interval
 
 NO_DATA = 240
 
@@ -23,8 +22,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
     slots = split_interval(start, end, n)
     
     landcover = LULCDetection()
-    clouddetection = CloudDetection(all_bands=True)
-
+    cloud_detector = S2PixelCloudDetector(threshold=None, average_over=0, dilation_size=0, all_bands=True)
 
     merged_mask = None
     merged_bands = None
@@ -33,7 +31,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
     for slot in slots:
         print(slot)
         image = './image_{start}_{end}.tiff'.format(start = slot[0], end = slot[1])
-        shretry(max_retry, download, bbox = bbox, time_interval = slot, output = image, split_shape=split_shape)
+        sh_retry(max_retry, download, bbox = bbox, time_interval = slot, output = image, split_shape=split_shape)
         with rasterio.open(image, 'r') as file:
             bands = file.read()
             mask  = bands[-1,  :, :]
@@ -44,10 +42,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
 
             bands[s2_mask] = 0
 
-            # plt.imshow(bands[:, :, [3,2,1]].clip(0,3000)/3000)
-            # plt.show()
-
-            cloud_prob = clouddetection.predict(bands.astype(np.float32)[np.newaxis, ...]/10000.0)[0, :, :]
+            cloud_prob = cloud_detector.get_cloud_probability_maps(bands.astype(np.float32)[np.newaxis, ...]/10000.0)[0, :, :]
             bands = landcover.predict(bands)
 
             mask = mask>0

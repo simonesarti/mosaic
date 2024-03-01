@@ -1,4 +1,7 @@
-# SentinelHub - Mosaic
+# SentinelHub - Mosaic improved
+
+!!! Code redesign, cleanup and further improvements in progress, will break !!!
+!!! Use the main repository for now !!!
 
 ## Description
 

@@ -168,6 +168,3 @@ test_dir
 *.xml
 *.png
 *.jpg
-
-sentinelhub_config.py
-test_aws.py
