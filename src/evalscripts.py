@@ -24,7 +24,7 @@ SENTINEL1 = """
 
     function evaluatePixel(samples) {
         return [
-            samples[0].VV, 
+            samples[0].VV,
             samples[0].dataMask
         ]
     }
@@ -93,13 +93,13 @@ ESA World Cover
 WORLDCOVER = """
 //VERSION=3
 
-// This custom script visualises WorldCover map 
+// This custom script visualises WorldCover map
 
 function setup() {
   return {
     input: ["Map", "dataMask"],
-    output: { 
-      bands: 2, 
+    output: {
+      bands: 2,
       sampleType: "INT8"
     }
   }

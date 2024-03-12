@@ -10,3 +10,6 @@ ESALC_DEFAULT = 0
 DWLC_DEAFULT = 0
 S1_DEFAULT = 0
 S2_DEFAULT = 0
+
+STATIC_IMAGES = ["copernicusdem", "esalulc"]
+TEMPORAL_IMAGES = ["dwlulc", "sentinel1", "sentinel2"]

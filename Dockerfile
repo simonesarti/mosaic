@@ -23,7 +23,7 @@ WORKDIR /opt/mosaic
 # Create folder where to save intermediate tifs
 RUN mkdir ./tmp_images
 
-# Copy and install requirements 
+# Copy and install requirements
 # executed ONLY if requirements have changed
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

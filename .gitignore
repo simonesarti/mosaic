@@ -164,7 +164,7 @@ tmp*
 deepcube.txt
 test_dir
 *.ipynb
-*.tiff
+*.tif
 *.xml
 *.png
 *.jpg

@@ -15,24 +15,24 @@ from src.constants import NO_DATA_CONTINUOUS, RESOLUTION, CRS, DEM_DEFAULT
 from src.utils.sh_requests import create_image_request, get_bbox_list
 from src.utils.interpolation import interpolate_tif
 
-def download(bbox, time_interval, output, split_shape, rate_limit):
+def download(bbox, time_interval, output_path, split_shape, rate_limit):
 
     evalscript = evalscripts.DEM_COPERNICUS_30
     data_collection = DataCollection.DEM_COPERNICUS_30
     mosaicking_order = MosaickingOrder.MOST_RECENT
-    
+   
     # bounding box is split into grid of rows x columns bounding boxes
     bbox_list = get_bbox_list(
         bbox=bbox,
         crs=CRS,
         split_shape=split_shape
     )
-    
+   
     # create requests for each bounding box
     sh_requests = []
     for bbox in bbox_list:
         image_request = create_image_request(
-            bbox=bbox, 
+            bbox=bbox,
             resolution= RESOLUTION,
             time_interval=time_interval,
             data_collection=data_collection,
@@ -40,7 +40,7 @@ def download(bbox, time_interval, output, split_shape, rate_limit):
             mosaicking_order=mosaicking_order,
         )
         sh_requests.append(image_request)
-    
+   
     #dl_requests = [request.download_list[0] for request in sh_requests]
     #_ = SentinelHubDownloadClient(config=None).download(dl_requests, max_threads=5)
 
@@ -50,9 +50,9 @@ def download(bbox, time_interval, output, split_shape, rate_limit):
         time.sleep(rate_limit)  # Pause for the specified time delay
 
     data_folder = sh_requests[0].data_folder
-    tiffs = [Path(data_folder) / req.get_filename_list()[0] for req in sh_requests]
-    str_tiffs = [str(tiff) for tiff in tiffs]
-    gdal_merge(str_tiffs, bbox, output=output, dstnodata=NO_DATA_CONTINUOUS)
+    tifs = [Path(data_folder) / req.get_filename_list()[0] for req in sh_requests]
+    str_tifs = [str(tif) for tif in tifs]
+    gdal_merge(str_tifs, bbox, output=output_path, dstnodata=NO_DATA_CONTINUOUS)
 
 
 def fix_tif(tif_path):
@@ -75,34 +75,24 @@ def fix_tif(tif_path):
 
 
 def mosaic(
-    bbox, 
-    start, 
-    end, 
-    output, 
-    max_retry, 
-    split_shape, 
+    bbox,
+    start,
+    end,
+    output_path,
+    max_retry,
+    split_shape,
     rate_limit
 ):
-
-    #sh_retry(
-    #    max_retry, 
-    #    download, 
-    #    bbox = bbox, 
-    #    time_interval=(start, end), 
-    #    output = output, 
-    #    split_shape = split_shape, 
-    #    rate_limit=rate_limit
-    #)
-    
+   
     download(
-        bbox = bbox, 
-        time_interval=(start, end), 
-        output = output, 
-        split_shape = split_shape, 
+        bbox = bbox,
+        time_interval=(start, end),
+        output_path = output_path,
+        split_shape = split_shape,
         rate_limit=rate_limit
     )
 
-    fix_tif(output)
+    fix_tif(output_path)
 
-    interpolate_tif(output, default=DEM_DEFAULT)
+    interpolate_tif(output_path, default=DEM_DEFAULT)
 

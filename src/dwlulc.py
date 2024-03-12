@@ -20,7 +20,7 @@ NO_DATA = 240
 
 def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
     slots = split_interval(start, end, n)
-    
+   
     landcover = LULCDetection()
     cloud_detector = S2PixelCloudDetector(threshold=None, average_over=0, dilation_size=0, all_bands=True)
 
@@ -30,7 +30,7 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
     files = []
     for slot in slots:
         print(slot)
-        image = './image_{start}_{end}.tiff'.format(start = slot[0], end = slot[1])
+        image = './image_{start}_{end}.tif'.format(start = slot[0], end = slot[1])
         sh_retry(max_retry, download, bbox = bbox, time_interval = slot, output = image, split_shape=split_shape)
         with rasterio.open(image, 'r') as file:
             bands = file.read()
@@ -62,12 +62,12 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
         else:
             merged_mask = merged_mask + mask
             merged_bands = merged_bands + bands
-        
+       
         files.append(image)
         if(len(files)<len(slots)):
             os.remove(image)
 
-    
+   
     merged_mask[merged_mask==0] = np.nan
     merged_bands = merged_bands/merged_mask
 
@@ -76,8 +76,8 @@ def mosaic(bbox, start, end, output, n, max_retry = 10, split_shape=(10, 10)):
     merged_bands[np.isnan(merged_bands)] = NO_DATA
     merged_bands = np.expand_dims(merged_bands, 0)
     merged_bands = merged_bands.astype(np.int16)
-    
-    
+   
+   
     shutil.copyfile(files[-1], output)
 
     profile.update(count = 1, dtype = np.int16)

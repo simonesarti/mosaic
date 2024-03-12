@@ -5,12 +5,12 @@ from scipy.interpolate import NearestNDInterpolator
 
 
 def save_tif(
-    output_path: Path, 
-    profile: dict, 
-    bands: np.ndarray, 
+    output_path: Path,
+    profile: dict,
+    bands: np.ndarray,
     masks: np.ndarray = None,
 ) -> None:
-    
+   
     n_channels = bands.shape[0]
 
     with rasterio.open(output_path, "w", **profile) as output_file:
@@ -27,21 +27,21 @@ def save_tif(
 
 
 def interpolation_is_needed(
-    bands: np.ndarray, 
+    bands: np.ndarray,
     masks: np.ndarray,
     nodata: int | float,
 ) -> bool:
-    
+   
     need_interpolation = (nodata in bands) or ((masks is not None) and (0 in masks))
     return need_interpolation
 
 
 def interpolate_tif(
-    tif_path: Path, 
-    interpolated_path: Path = None, 
+    tif_path: Path,
+    interpolated_path: Path = None,
     default: int | float = 0
 ) -> None:
-    
+   
     with rasterio.open(tif_path, "r") as tif_image:
         tif_bands = tif_image.read()
         tif_masks = tif_image.read_masks()
@@ -64,8 +64,8 @@ def interpolate_tif(
         interpolated_path = tif_path
 
     save_tif(
-        output_path=interpolated_path, 
-        profile=tif_profile, 
+        output_path=interpolated_path,
+        profile=tif_profile,
         bands=interpolated_bands,
         mask=None,
     )
@@ -78,7 +78,7 @@ def _interpolate_bands(
     tif_nodata: int | float,
     default: int | float = 0,
 ) -> np.ndarray:
-    
+   
     interpolated_bands = []
 
     n_channels = tif_bands.shape[0]
@@ -90,10 +90,10 @@ def _interpolate_bands(
         # skip band interpolation is band already ok
         if interpolation_is_needed(band, mask, tif_nodata):
             interpolated_band = _interpolate_band(
-                band=band, 
-                mask=mask, 
+                band=band,
+                mask=mask,
                 tif_dtype=tif_dtype,
-                tif_nodata=tif_nodata, 
+                tif_nodata=tif_nodata,
                 default=default,
             )
         else:
@@ -113,7 +113,7 @@ def _interpolate_band(
     tif_nodata: int | float,
     default: int | float = 0,
 ) -> np.ndarray:
-    
+   
     band_shape = band.shape
 
     band_submask = (band != tif_nodata)
