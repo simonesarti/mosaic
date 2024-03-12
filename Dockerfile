@@ -5,8 +5,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update --fix-missing
 RUN apt install -y gdal-bin
 RUN apt install -y libgdal-dev
-RUN export CPLUS_INCLUDE_PATH=/usr/include/gdal && export C_INCLUDE_PATH=/usr/include/gdal && pip install GDAL
 RUN apt clean
+
+RUN export CPLUS_INCLUDE_PATH=/usr/include/gdal 
+RUN export C_INCLUDE_PATH=/usr/include/gdal
 
 # create necessary directories and give write permission
 RUN mkdir /.config
@@ -26,6 +28,7 @@ RUN mkdir ./tmp_images
 # Copy and install requirements
 # executed ONLY if requirements have changed
 COPY requirements.txt .
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all the project files into the working directory (except those in .dockerignore)
